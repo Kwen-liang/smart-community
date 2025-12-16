@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartcommunity.mapper.TbGridMapper">
+
+    <select id="selectGridWithGeo" resultType="com.smartcommunity.entity.TbGrid">
+        SELECT
+            g.grid_id, g.name, g.code, g.area, g.population, g.color, g.status, g.create_time, g.manager_id,
+            ST_AsGeoJSON(g.geom) as geomJson,
+            u.nickname as managerName,
+            u.phone as managerPhone
+        FROM tb_grid g
+                 LEFT JOIN sys_user u ON g.manager_id = u.user_id
+        ORDER BY g.create_time DESC
+    </select>
+
+    <insert id="insertGrid" useGeneratedKeys="true" keyProperty="gridId">
+        INSERT INTO tb_grid
+        (name, code, area, population, color, manager_id, status, geom, create_time)
+        VALUES
+            (
+                #{name}, #{code}, #{area}, #{population}, #{color}, #{managerId}, #{status},
+                ST_SetSRID(ST_GeomFromGeoJSON(#{geomJson}), 4326),
+                NOW()
+            )
+    </insert>
+
+    <!-- 【新增】利用 PostGIS 的 ST_Contains 函数判断点是否在网格多边形内 -->
+    <select id="findGridByPoint" resultType="com.smartcommunity.entity.TbGrid">
+        SELECT grid_id, name, manager_id
+        FROM tb_grid
+        WHERE ST_Contains(
+                      geom,
+                      ST_SetSRID(ST_GeomFromGeoJSON(#{pointJson}), 4326)
+              )
+            LIMIT 1
+    </select>
+
+</mapper>

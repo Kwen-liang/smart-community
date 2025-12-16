@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartcommunity.mapper.SysUserMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.smartcommunity.entity.SysUser">
+        <id column="user_id" property="userId" />
+        <result column="dept_id" property="deptId" />
+        <result column="username" property="username" />
+        <result column="password" property="password" />
+        <result column="nickname" property="nickname" />
+        <result column="phone" property="phone" />
+        <result column="avatar" property="avatar" />
+        <result column="sex" property="sex" />
+        <result column="status" property="status" />
+        <result column="role_key" property="roleKey" />
+        <result column="create_time" property="createTime" />
+        <!-- 扩展字段映射 -->
+        <result column="dept_name" property="deptName" />
+    </resultMap>
+
+    <!-- 联表查询用户列表 -->
+    <select id="selectUserList" resultMap="BaseResultMap">
+        SELECT
+        u.*,
+        d.dept_name
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON u.dept_id = d.dept_id
+        <where>
+            <if test="user.username != null and user.username != ''">
+                AND u.username LIKE concat('%', #{user.username}, '%')
+            </if>
+            <if test="user.phone != null and user.phone != ''">
+                AND u.phone LIKE concat('%', #{user.phone}, '%')
+            </if>
+            <if test="user.status != null and user.status != ''">
+                AND u.status = #{user.status}
+            </if>
+            <if test="user.deptId != null and user.deptId != 0">
+                AND (u.dept_id = #{user.deptId} OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE find_in_set(#{user.deptId}, ancestors) ))
+            </if>
+        </where>
+        ORDER BY u.create_time DESC
+    </select>
+
+</mapper>

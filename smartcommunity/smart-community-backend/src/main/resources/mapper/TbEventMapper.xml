@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartcommunity.mapper.TbEventMapper">
+
+    <!-- 查询事件列表 -->
+    <select id="selectEventWithGeo" resultType="com.smartcommunity.entity.TbEvent">
+        SELECT
+            e.*,
+            -- 核心：将二进制 geom 转换为 GeoJSON 字符串
+            ST_AsGeoJSON(e.geom) as geomJson,
+            u.nickname as reporterName
+        FROM tb_event e
+                 LEFT JOIN sys_user u ON e.reporter_id = u.user_id
+        ORDER BY e.occur_time DESC
+    </select>
+
+    <!-- 插入事件 -->
+    <insert id="insertEvent" useGeneratedKeys="true" keyProperty="eventId">
+        INSERT INTO tb_event
+        (
+            title, type, urgency, occur_time, address, description,
+            images, status, reporter_id, grid_id, geom, create_time
+        )
+        VALUES
+            (
+                #{title}, #{type}, #{urgency}, #{occurTime}, #{address}, #{description},
+                -- images 字段在数据库是 jsonb 类型，需要强转
+                #{images}::jsonb,
+                #{status}, #{reporterId}, #{gridId},
+                -- 核心：空间数据转换
+                ST_SetSRID(ST_GeomFromGeoJSON(#{geomJson}), 4326),
+                NOW()
+            )
+    </insert>
+
+</mapper>
